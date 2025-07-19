@@ -1,7 +1,7 @@
 import pathlib
 
 ### Task parameters
-DATA_DIR = '<put your data dir here>'
+DATA_DIR = '/media/hdd1/cs24-chenxy/act/dataset'
 SIM_TASK_CONFIGS = {
     'sim_transfer_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',
@@ -29,6 +29,20 @@ SIM_TASK_CONFIGS = {
         'num_episodes': 50,
         'episode_len': 500,
         'camera_names': ['top']
+    },
+
+    'sim_lift_abs' : {
+        'dataset_dir': DATA_DIR + '/sim_lift_abs',
+        'num_episodes': 200,
+        'episode_len': 100,
+        'camera_names': ['agentview']
+    },
+
+    'sim_PickPlaceCan_abs' : {
+        'dataset_dir': DATA_DIR + '/sim_PickPlaceCan_abs',
+        'num_episodes': 200,
+        'episode_len': 200,
+        'camera_names': ['agentview']
     },
 }
 
