@@ -556,7 +556,7 @@ def main(args):
         save_rollout_video(
             replay_images, total_episodes, success=env._check_success(), task_description=prompt, log_file=None
         )
-    print(f"Total task successes: {task_successes}/{total_task_cnt}")
+    print(f"Total task successes: {task_successes}/{total_task_cnt}, task success rate: {task_successes / total_task_cnt:.2f}")
     
     '''
     while True:

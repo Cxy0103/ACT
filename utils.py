@@ -8,12 +8,14 @@ import IPython
 e = IPython.embed
 
 class EpisodicDataset(torch.utils.data.Dataset):
-    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats):
+    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats, max_episode_len): #modified by xueyao
         super(EpisodicDataset).__init__()
         self.episode_ids = episode_ids
         self.dataset_dir = dataset_dir
         self.camera_names = camera_names
         self.norm_stats = norm_stats
+        # modified by xueyao
+        self.max_episode_len = max_episode_len
         self.is_sim = None
         self.__getitem__(0) # initialize self.is_sim
 
@@ -29,6 +31,8 @@ class EpisodicDataset(torch.utils.data.Dataset):
             is_sim = root.attrs['sim']
             original_action_shape = root['/action'].shape
             episode_len = original_action_shape[0]
+            # modified by xueyao
+            action_dim = original_action_shape[1]
             if sample_full_episode:
                 start_ts = 0
             else:
@@ -48,9 +52,13 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
 
         self.is_sim = is_sim
-        padded_action = np.zeros(original_action_shape, dtype=np.float32)
+        #modified by xueyao
+        #padded_action = np.zeros(original_action_shape, dtype=np.float32)
+        padded_action = np.zeros((self.max_episode_len, action_dim), dtype=np.float32)
         padded_action[:action_len] = action
-        is_pad = np.zeros(episode_len)
+        #modified by xueyao
+        #is_pad = np.zeros(episode_len)
+        is_pad = np.zeros(self.max_episode_len)
         is_pad[action_len:] = 1
 
         # new axis for different cameras
@@ -70,8 +78,12 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
         # normalize image and change dtype to float
         image_data = image_data / 255.0
-        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
-        qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
+
+        #modified by xueyao
+        #action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
+        #qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
+        action_data = ((action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]).float()
+        qpos_data = ((qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]).float()
 
         return image_data, qpos_data, action_data, is_pad
 
@@ -87,6 +99,9 @@ def get_norm_stats(dataset_dir, num_episodes):
             action = root['/action'][()]
         all_qpos_data.append(torch.from_numpy(qpos))
         all_action_data.append(torch.from_numpy(action))
+
+    #original
+    '''
     all_qpos_data = torch.stack(all_qpos_data)
     all_action_data = torch.stack(all_action_data)
     all_action_data = all_action_data
@@ -100,6 +115,23 @@ def get_norm_stats(dataset_dir, num_episodes):
     qpos_mean = all_qpos_data.mean(dim=[0, 1], keepdim=True)
     qpos_std = all_qpos_data.std(dim=[0, 1], keepdim=True)
     qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
+    '''
+
+    #modified by xueyao
+    # 使用 torch.cat 将所有数据沿着时间维度（第0维）拼接成一个长序列
+    all_qpos_data = torch.cat(all_qpos_data, dim=0)
+    all_action_data = torch.cat(all_action_data, dim=0)
+    all_action_data = all_action_data
+    # ...
+    # 因为现在只有一个时间维度，所以只在 dim=0 上计算均值和标准差
+    action_mean = all_action_data.mean(dim=0, keepdim=True)
+    action_std = all_action_data.std(dim=0, keepdim=True)
+    action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
+
+    # 对 qpos 数据也做同样修改
+    qpos_mean = all_qpos_data.mean(dim=0, keepdim=True)
+    qpos_std = all_qpos_data.std(dim=0, keepdim=True)
+    qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
 
     stats = {"action_mean": action_mean.numpy().squeeze(), "action_std": action_std.numpy().squeeze(),
              "qpos_mean": qpos_mean.numpy().squeeze(), "qpos_std": qpos_std.numpy().squeeze(),
@@ -108,7 +140,7 @@ def get_norm_stats(dataset_dir, num_episodes):
     return stats
 
 
-def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val):
+def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, max_episode_len):#modified by xueyao
     print(f'\nData from: {dataset_dir}\n')
     # obtain train test split
     train_ratio = 0.8
@@ -120,8 +152,8 @@ def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_s
     norm_stats = get_norm_stats(dataset_dir, num_episodes)
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats)
-    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats)
+    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats, max_episode_len)#modified by xueyao
+    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats, max_episode_len)#modified by xueyao
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
 

@@ -21,6 +21,11 @@ from sim_env import BOX_POSE
 import IPython
 e = IPython.embed
 
+import gc
+
+gc.collect()
+torch.cuda.empty_cache()
+
 def main(args):
     set_seed(1)
     # command line parameters
@@ -100,7 +105,7 @@ def main(args):
         print()
         exit()
 
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
+    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, episode_len)#modified by xueyao
 
     # save dataset stats
     if not os.path.isdir(ckpt_dir):
@@ -405,7 +410,7 @@ def plot_history(train_history, validation_history, num_epochs, ckpt_dir, seed):
         val_values = [summary[key].item() for summary in validation_history]
         plt.plot(np.linspace(0, num_epochs-1, len(train_history)), train_values, label='train')
         plt.plot(np.linspace(0, num_epochs-1, len(validation_history)), val_values, label='validation')
-        # plt.ylim([-0.1, 1])
+        plt.ylim([-0.1, 1])
         plt.tight_layout()
         plt.legend()
         plt.title(key)
