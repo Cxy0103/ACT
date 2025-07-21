@@ -31,10 +31,24 @@ SIM_TASK_CONFIGS = {
         'camera_names': ['top']
     },
 
+    'sim_lift' : {
+        'dataset_dir': DATA_DIR + '/sim_lift',
+        'num_episodes': 200,
+        'episode_len': 100,
+        'camera_names': ['agentview']
+    },
+
     'sim_lift_abs' : {
         'dataset_dir': DATA_DIR + '/sim_lift_abs',
         'num_episodes': 200,
         'episode_len': 100,
+        'camera_names': ['agentview']
+    },
+
+    'sim_PickPlaceCan' : {
+        'dataset_dir': DATA_DIR + '/sim_PickPlaceCan',
+        'num_episodes': 200,
+        'episode_len': 200,
         'camera_names': ['agentview']
     },
 
@@ -43,6 +57,20 @@ SIM_TASK_CONFIGS = {
         'num_episodes': 200,
         'episode_len': 200,
         'camera_names': ['agentview']
+    },
+
+    'sim_PickPlaceCan_delta_wrist' : {
+        'dataset_dir': DATA_DIR + '/sim_PickPlaceCan',
+        'num_episodes': 200,
+        'episode_len': 200,
+        'camera_names': ['agentview', 'robot0_eye_in_hand']
+    },
+
+    'sim_PickPlaceCan_abs_wrist' : {
+        'dataset_dir': DATA_DIR + '/sim_PickPlaceCan_abs',
+        'num_episodes': 200,
+        'episode_len': 200,
+        'camera_names': ['agentview', 'robot0_eye_in_hand']
     },
 }
 

@@ -223,7 +223,9 @@ def get_robosuite_image(obs, resize_size):
 def get_image(obs, camera_names):
     curr_images = []
     for cam_name in camera_names:
-        curr_image = rearrange(obs[cam_name], 'h w c -> c h w')
+        tmp_image = obs[cam_name]
+        tmp_image = tmp_image[::-1, :]  # Rotate 180 degrees to match train preprocessing
+        curr_image = rearrange(tmp_image, 'h w c -> c h w')
         curr_images.append(curr_image)
     curr_image = np.stack(curr_images, axis=0)
     curr_image = torch.from_numpy(curr_image / 255.0).float().cuda().unsqueeze(0)
@@ -344,9 +346,9 @@ def main(args):
                          'enc_layers': 4,
                          'dec_layers': 7,
                          'nheads': 8,
-                         'camera_names': ['agentview'],
+                         'camera_names': ['agentview', 'robot0_eye_in_hand'],
                          },
-        'camera_names': ['agentview'],
+        'camera_names': ['agentview_image', 'robot0_eye_in_hand_image'],
         'episode_len': 200,
         'task_name': 'sim_lift',
         'seed': 0,  # 随机种子
@@ -402,7 +404,9 @@ def main(args):
     total_episodes = 0
 
     # 根据是否使用时间集成，设置查询频率
-    query_frequency = config['policy_config']['num_queries']
+    #query_frequency = config['policy_config']['num_queries']
+    #tmp modify
+    query_frequency = 10
     if config['temporal_agg']:
         query_frequency = 1
         num_queries = config['policy_config']['num_queries']
@@ -438,11 +442,12 @@ def main(args):
         
 
         for t in tqdm(range(max_steps)):
-            image, wrist_image = get_robosuite_image(obs, resize_size=(84, 84))
-            replay_images.append(image)
+            image_for_video, wrist_image = get_robosuite_image(obs, resize_size=(84, 84))
+            replay_images.append(image_for_video)
 
-            image = get_ACT_img(image)
-            wrist_image = get_ACT_img(wrist_image)
+            # image = get_ACT_img(image)
+            # wrist_image = get_ACT_img(wrist_image)
+            image = get_image(obs, camera_names=camera_names)
 
 
             cos_q = obs.pop("robot0_joint_pos_cos")   # (7,)
